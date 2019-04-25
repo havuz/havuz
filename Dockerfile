@@ -1,7 +1,8 @@
 FROM golang:alpine AS builder
+RUN apk add --no-cache git make
 WORKDIR /go/src/github.com/havuz/havuz
 COPY . .
-RUN go install -ldflags="-w -s" ./...
+RUN make install
 
 FROM alpine:3.9
 COPY --from=builder /go/bin/havuz /
