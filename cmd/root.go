@@ -7,10 +7,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version indicates the build version of the app.
+var Version string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "havuz",
 	Short: `Havuz is a small proxy pool community that runs on donations and memberships.`,
+	Version: Version,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
