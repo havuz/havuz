@@ -135,16 +135,30 @@ func (s *Server) proxyHandler(u *types.User) http.HandlerFunc {
 		defer sem.Release(1)
 
 		if r.Method == "CONNECT" {
-			handleCONNECT(w, r, dial)
+			handleTunneling(true, w, r, dial)
 		} else {
-			http.Error(w, "Only CONNECT requests are allowed at the moment.", http.StatusMethodNotAllowed)
+			for _, v := range []string{
+				"Connection",
+				"Proxy-Connection", // non-standard but still sent by libcurl and rejected by e.g. google
+				"Keep-Alive",
+				"Proxy-Authenticate",
+				"Proxy-Authorization",
+				"Te",      // canonicalized version of "TE"
+				"Trailer", // not Trailers per URL above; http://www.rfc-editor.org/errata_search.php?eid=4522
+				"Transfer-Encoding",
+				"Upgrade",
+			} {
+				r.Header.Del(v)
+			}
+
+			handleTunneling(false, w, r, dial)
 		}
 	}
 }
 
 type dialFunc func(string, string) (net.Conn, error)
 
-func handleCONNECT(w http.ResponseWriter, r *http.Request, dial dialFunc) {
+func handleTunneling(isTLS bool, w http.ResponseWriter, r *http.Request, dial dialFunc) {
 	hij, _ := w.(http.Hijacker)
 
 	clientConn, _, err := hij.Hijack()
@@ -153,15 +167,22 @@ func handleCONNECT(w http.ResponseWriter, r *http.Request, dial dialFunc) {
 	}
 	defer clientConn.Close()
 
-	proxyConn, err := dial("tcp", r.Host)
+	port := r.URL.Port()
+	if port == "" {
+		port = "80"
+	}
+
+	proxyConn, err := dial("tcp", net.JoinHostPort(r.URL.Hostname(), port))
 	if err != nil {
 		panic(err)
 	}
 	defer proxyConn.Close()
 
-	_, err = clientConn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	if err != nil {
-		panic(err)
+	if isTLS {
+		_, err = clientConn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var wg sync.WaitGroup
@@ -170,15 +191,19 @@ func handleCONNECT(w http.ResponseWriter, r *http.Request, dial dialFunc) {
 	go func() {
 		defer wg.Done()
 		io.Copy(clientConn, proxyConn)
-		proxyConn.Close()
-		clientConn.Close()
+		// proxyConn.Close()
+		// clientConn.Close()
 	}()
 
 	go func() {
 		defer wg.Done()
-		io.Copy(proxyConn, clientConn)
-		clientConn.Close()
-		proxyConn.Close()
+		if isTLS {
+			io.Copy(proxyConn, clientConn)
+			// clientConn.Close()
+			// proxyConn.Close()
+		} else {
+			r.Write(proxyConn)
+		}
 	}()
 
 	wg.Wait()
