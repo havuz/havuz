@@ -54,7 +54,10 @@ func (s *Server) Run() (err error) {
 	s.Logger.WithFields(map[string]interface{}{
 		"Addr": s.Addr,
 	}).Infoln("proxy gateway is now listening")
-	return http.ListenAndServe(s.Addr, s.proxyHandler(user))
+
+	srv := &http.Server{Addr: s.Addr, Handler: s.proxyHandler(user)}
+	srv.SetKeepAlivesEnabled(false)
+	return srv.ListenAndServe()
 }
 
 func (s *Server) init() error {
