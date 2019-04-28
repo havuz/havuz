@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	backendURL = "https://backend.havuz.now.sh/"
+	backendURL = "https://havuzbackend.cfapps.io/"
 	privKeyURL = "https://gist.githubusercontent.com/0xbkt/cdea8c71f53fe37d71275dae2c904f5e/raw"
 )
 
