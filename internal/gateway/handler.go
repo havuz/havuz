@@ -126,8 +126,11 @@ func (s *Server) proxyHandler(u *types.User) http.HandlerFunc {
 			return
 		}
 
-		// todo(0xbkt): implement proxy authentication here
-		// user, pass, ok := parseBasicAuth(r.Header.Get("Proxy-Authorization"))
+		user, pass, _ := parseBasicAuth(r.Header.Get("Proxy-Authorization"))
+		if s.Auth != "" && s.Auth != fmt.Sprintf("%s:%s", user, pass) {
+			http.Error(w, http.StatusText(http.StatusProxyAuthRequired), http.StatusProxyAuthRequired)
+			return
+		}
 
 		if err := sem.Acquire(context.TODO(), 1); err != nil {
 			panic(err)

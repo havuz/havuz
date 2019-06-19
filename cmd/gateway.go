@@ -26,11 +26,12 @@ var gatewayCmd = &cobra.Command{
 
 The server will immediately be ready to accept HTTPS requests and route them through the
 tunnels in the pool of Havuz.`,
-	Example: `  env [ADDR=:8080] LICENSE=<LICENSE> havuz gateway`,
+	Example: `  env [ADDR=:8080] [AUTH=user:pass] LICENSE=<LICENSE> havuz gateway`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			ADDR    = os.Getenv("ADDR")
 			LICENSE = os.Getenv("LICENSE")
+			AUTH    = os.Getenv("AUTH")
 		)
 
 		var privKey *rsa.PrivateKey
@@ -60,6 +61,7 @@ tunnels in the pool of Havuz.`,
 
 		gw := &gateway.Server{
 			Addr:       ADDR,
+			Auth:       AUTH,
 			License:    LICENSE,
 			BackendURL: backendURL,
 			PrivKey:    privKey,

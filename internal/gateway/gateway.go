@@ -21,6 +21,7 @@ import (
 // Server is a Proxy Gateway that tunnels the requests through
 // the tunnels in the pool of Havuz.
 type Server struct {
+	Auth       string          // Crendential in USER:PASS form to access to the gateway server.
 	Addr       string          // TCP address to listen on, ":8080" if empty.
 	License    string          // License code of the client.
 	BackendURL string          // BackendURL is the endpoint of upstream services.
